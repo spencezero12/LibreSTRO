@@ -3,14 +3,14 @@
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QSettings, QStandardPaths
+from PySide6.QtCore import QSettings, QStandardPaths
 from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtWidgets import (
     QApplication,
+    QComboBox,
     QFileDialog,
     QHBoxLayout,
     QLabel,
-    QComboBox,
     QMainWindow,
     QMessageBox,
     QVBoxLayout,
@@ -20,12 +20,7 @@ from PySide6.QtWidgets import (
 from audio_player import ReproductorAudio
 from theme_manager import aplicar_tema, cargar_temas
 from ui_components import BarraLateral, BarraReproduccion, PanelBiblioteca
-
-
-def formato_tiempo(milisegundos):
-    segundos = max(0, milisegundos // 1000)
-    minutos, segundos = divmod(segundos, 60)
-    return f"{minutos}:{segundos:02d}"
+from utils import formato_tiempo
 
 
 class LibreSTRO(QMainWindow):
