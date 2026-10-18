@@ -18,8 +18,9 @@ from PySide6.QtWidgets import (
 )
 
 from audio_player import ReproductorAudio
+from library_panel import PanelBibliotecaMusical
 from theme_manager import aplicar_tema, cargar_temas
-from ui_components import BarraLateral, BarraReproduccion, PanelBiblioteca
+from ui_components import BarraLateral, BarraReproduccion
 from utils import formato_tiempo
 
 
@@ -49,7 +50,7 @@ class LibreSTRO(QMainWindow):
         contenido = QHBoxLayout()
         contenido.setSpacing(10)
         self.barra_lateral = BarraLateral()
-        self.biblioteca = PanelBiblioteca()
+        self.biblioteca = PanelBibliotecaMusical()
         contenido.addWidget(self.barra_lateral)
         contenido.addWidget(self.biblioteca, 1)
         layout_principal.addLayout(contenido, 1)
@@ -67,6 +68,7 @@ class LibreSTRO(QMainWindow):
         self.audio = ReproductorAudio(self)
         player = self.audio.reproductor
         self.biblioteca.boton_abrir.clicked.connect(self.abrir_archivo)
+        self.biblioteca.cancion_elegida.connect(self.reproducir_cancion_biblioteca)
         self.controles.boton_reproducir.clicked.connect(self.audio.alternar_reproduccion)
         self.controles.volumen.valueChanged.connect(self.audio.fijar_volumen)
         self.controles.barra_progreso.sliderMoved.connect(player.setPosition)
@@ -104,6 +106,21 @@ class LibreSTRO(QMainWindow):
         self.controles.cancion.setText(nombre)
         self.controles.cancion.setToolTip(ruta)
         self.audio.abrir(Path(ruta))
+
+    def reproducir_cancion_biblioteca(self, ruta):
+        """Abrir una canción elegida mediante doble clic en la biblioteca."""
+        archivo = Path(ruta)
+        if not archivo.is_file():
+            QMessageBox.warning(self, "Archivo no disponible", str(archivo))
+            return
+        self.biblioteca.mensaje.setText(archivo.name)
+        self.controles.cancion.setText(archivo.name)
+        self.controles.cancion.setToolTip(str(archivo))
+        self.audio.abrir(archivo)
+
+    def closeEvent(self, evento):
+        self.biblioteca.detener_escaneo()
+        super().closeEvent(evento)
 
     def actualizar_duracion(self, duracion):
         self.controles.barra_progreso.setRange(0, max(0, duracion))
