@@ -1,0 +1,46 @@
+
+/* LibreSTRO - Tema oscuro */
+
+QMainWindow {
+    background-color: #171b26;
+}
+
+QLabel {
+    color: #f3f6fa;
+    font-size: 14px;
+}
+
+QLabel#titulo {
+    font-size: 24px;
+    font-weight: bold;
+    padding: 10px;
+}
+
+QLabel#encabezado {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+QFrame#barraLateral,
+QFrame#biblioteca,
+QFrame#reproductor {
+    background-color: #242b3a;
+    border-radius: 8px;
+}
+
+QPushButton {
+    background-color: #364153;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px;
+    min-height: 20px;
+}
+
+QPushButton:hover {
+    background-color: #485b72;
+}
+
+QPushButton:focus {
+    border: 2px solid #86d1e5;
+}
