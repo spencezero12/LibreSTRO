@@ -64,9 +64,17 @@ class BarraReproduccion(QFrame):
         self.cancion.setMinimumWidth(130)
         fila.addWidget(self.cancion, 1)
 
+        self.boton_anterior = QPushButton("⏮")
+        self.boton_anterior.setToolTip("Canción anterior")
+        fila.addWidget(self.boton_anterior)
+
         self.boton_reproducir = QPushButton("▶")
         self.boton_reproducir.setToolTip("Reproducir / pausar")
         fila.addWidget(self.boton_reproducir)
+
+        self.boton_siguiente = QPushButton("⏭")
+        self.boton_siguiente.setToolTip("Siguiente canción")
+        fila.addWidget(self.boton_siguiente)
 
         self.volumen = QSlider(Qt.Orientation.Horizontal)
         self.volumen.setRange(0, 100)

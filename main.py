@@ -3,7 +3,7 @@
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QSettings, QStandardPaths
+from PySide6.QtCore import QSettings, QStandardPaths, Qt
 from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtWidgets import (
     QApplication,
@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 
 from audio_player import ReproductorAudio
 from library_panel import PanelBibliotecaMusical
+from playback_queue import ColaReproduccion
 from theme_manager import aplicar_tema, cargar_temas
 from ui_components import BarraLateral, BarraReproduccion
 from utils import formato_tiempo
@@ -65,17 +66,21 @@ class LibreSTRO(QMainWindow):
         self.selector_temas.currentIndexChanged.connect(self.cambiar_tema)
 
         # Paso 14: servicio de audio independiente de la interfaz.
+        self.cola = ColaReproduccion()
         self.audio = ReproductorAudio(self)
         player = self.audio.reproductor
         self.biblioteca.boton_abrir.clicked.connect(self.abrir_archivo)
         self.biblioteca.cancion_elegida.connect(self.reproducir_cancion_biblioteca)
         self.controles.boton_reproducir.clicked.connect(self.audio.alternar_reproduccion)
+        self.controles.boton_anterior.clicked.connect(self.reproducir_anterior)
+        self.controles.boton_siguiente.clicked.connect(self.reproducir_siguiente)
         self.controles.volumen.valueChanged.connect(self.audio.fijar_volumen)
         self.controles.barra_progreso.sliderMoved.connect(player.setPosition)
         player.durationChanged.connect(self.actualizar_duracion)
         player.positionChanged.connect(self.actualizar_posicion)
         player.playbackStateChanged.connect(self.actualizar_boton)
         player.errorOccurred.connect(self.mostrar_error_audio)
+        player.mediaStatusChanged.connect(self._comprobar_fin_de_pista)
 
     def cargar_temas(self):
         cargar_temas(
@@ -101,22 +106,60 @@ class LibreSTRO(QMainWindow):
         if not ruta:
             return
 
-        nombre = Path(ruta).name
-        self.biblioteca.mensaje.setText(nombre)
-        self.controles.cancion.setText(nombre)
-        self.controles.cancion.setToolTip(ruta)
-        self.audio.abrir(Path(ruta))
+        # Archivo individual: cola de una sola canción.
+        self.cola.cargar([Path(ruta)])
+        self._reproducir_actual()
 
     def reproducir_cancion_biblioteca(self, ruta):
-        """Abrir una canción elegida mediante doble clic en la biblioteca."""
+        """Construir una cola con el orden actual de las filas de la tabla."""
         archivo = Path(ruta)
         if not archivo.is_file():
             QMessageBox.warning(self, "Archivo no disponible", str(archivo))
             return
-        self.biblioteca.mensaje.setText(archivo.name)
-        self.controles.cancion.setText(archivo.name)
-        self.controles.cancion.setToolTip(str(archivo))
-        self.audio.abrir(archivo)
+
+        rutas = []
+        for fila in range(self.biblioteca.tabla.rowCount()):
+            celda = self.biblioteca.tabla.item(fila, 0)
+            if celda is None:
+                continue
+            valor = celda.data(Qt.ItemDataRole.UserRole)
+            if valor:
+                rutas.append(Path(valor))
+
+        # Una pista puede haberse añadido mientras todavía se escanea.
+        if archivo not in rutas:
+            rutas.append(archivo)
+        indice = rutas.index(archivo)
+        self.cola.cargar(rutas, indice)
+        self._reproducir_actual()
+
+    def _reproducir_actual(self):
+        """Abrir la pista seleccionada sin cambiar el orden de la cola."""
+        ruta = self.cola.actual
+        if ruta is None:
+            return
+        if not ruta.is_file():
+            QMessageBox.warning(self, "Archivo no disponible", str(ruta))
+            return
+        self.biblioteca.mensaje.setText(ruta.name)
+        self.controles.cancion.setText(ruta.name)
+        self.controles.cancion.setToolTip(str(ruta))
+        self.audio.abrir(ruta)
+
+    def reproducir_siguiente(self):
+        """Saltar a la siguiente pista, si existe."""
+        if self.cola.siguiente() is not None:
+            self._reproducir_actual()
+
+    def reproducir_anterior(self):
+        """Volver a la pista previa, si existe."""
+        if self.cola.anterior() is not None:
+            self._reproducir_actual()
+
+    def _comprobar_fin_de_pista(self, estado):
+        """Continuar automáticamente solo al terminar el archivo."""
+        if estado == QMediaPlayer.MediaStatus.EndOfMedia:
+            self.reproducir_siguiente()
 
     def closeEvent(self, evento):
         self.biblioteca.detener_escaneo()
